@@ -1,0 +1,10 @@
+target/
+.worksheet
+.cache
+.project
+.classpath
+.settings
+*.sc
+lib_managed
+*.sbt
+.metadata

@@ -1,6 +1,7 @@
 package forcomp
 
 import common._
+import scala.collection.generic.Sorted
 
 object Anagrams {
 
@@ -43,7 +44,7 @@ object Anagrams {
 
 	/** Converts a sentence into its character occurrence list. */
 	def sentenceOccurrences(s: Sentence): Occurrences =
-		s.flatMap(word => wordOccurrences(word))
+		wordOccurrences(s.foldLeft(""){case (base, str) => base.concat(str)}) 
 
 	/**
 	 * The `dictionaryByOccurrences` is a `Map` from different occurrences to a sequence of all
@@ -124,9 +125,9 @@ object Anagrams {
 			if (map(ch) - num == 0)
 				map - ch
 			else
-				xMap.updated(ch, xMap(ch) - num)
+				map.updated(ch, map(ch) - num)
 		}
-		y.foldLeft(xMap){case (map, pair) => convert(pair)(map)} toList
+		y.foldLeft(xMap) { case (map, pair) => convert(pair)(map) }.toList.sorted
 	}
 
 	/**
@@ -170,6 +171,29 @@ object Anagrams {
 	 *
 	 *  Note: There is only one anagram of an empty sentence.
 	 */
-	def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+	def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
+		def occurrences = sentenceOccurrences(sentence)
+		makeSentences(occurrences)
+	}
 
+	def makeSentences(occurrences: Occurrences): List[Sentence] = {
+		occurrences match {
+			case Nil => List(Nil)
+			case _ => {
+				for (
+					occur <- combinations(occurrences);
+					word <- dictionaryByOccurrences.getOrElse(occur, Nil);
+					end <- makeSentences(subtract(occurrences, occur))
+					) 
+					yield List(word) ++ end
+			}
+		}
+	}
+	
+	def sentenceAnagramsMemo(sentence: Sentence): List[Sentence] = {
+    val anagramsByOccurrences = scala.collection.mutable.Map.empty[Occurrences, List[Sentence]]
+    def occurrencesAnagramsMemo(occurrences: Occurrences): List[Sentence] =
+      anagramsByOccurrences.getOrElseUpdate(occurrences, makeSentences(occurrences))
+    occurrencesAnagramsMemo(sentenceOccurrences(sentence))
+  }
 }
