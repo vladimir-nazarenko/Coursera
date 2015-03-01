@@ -1,110 +1,110 @@
+/**
+ * Created by vladimir on 19.02.15.
+ */
+
+
 
 public class Percolation {
-	public Percolation(int N) {
-		UF = new WeightedQuickUnionUF(N * N + 2);
-		safeUF = new WeightedQuickUnionUF(N * N + 1);
-		opened = new boolean[N * N + 2];
+	public Percolation(int N)
+	{
+		if(N <= 0)
+			throw new IllegalArgumentException();
+		virtualSize = N + 2;
 		size = N;
-		for (int i = 1; i < size * size + 1; ++i)
-			opened[i] = false;
-		opened[0] = true;
-		opened[size * size + 1] = true;
-	}
-
-	public void open(int i, int j) {
-		if (i > size || i < 1 || j > size || j < 1)
-			throw new IndexOutOfBoundsException("wrong index");
-		int number = numberOf(i, j);
-		int side = -1;
-		opened[number] = true;
-		if ((side = left(number)) > 0)
-			if (isOpen(i, j - 1))
-			{
-				UF.union(side, number);
-				safeUF.union(side, number);
-			}
-		if ((side = right(number)) > 0)
-			if (isOpen(i, j + 1))
-			{
-				UF.union(side, number);
-				safeUF.union(side, number);
-			}
-		if ((side = bottom(number)) > 0)
+		opened = new boolean[virtualSize * virtualSize + 2];
+		indicator = new WeightedQuickUnionUF(virtualSize * virtualSize + 2);
+		antiBackslash = new WeightedQuickUnionUF(virtualSize * virtualSize + 1);
+		int last = virtualSize * virtualSize + 1;
+		for(int i = 0; i < size; i++)
 		{
-			if (isOpen(i + 1, j))
-			{
-				UF.union(side, number);
-				safeUF.union(side, number);
-			}
+			indicator.union(0, virtualSize + 2 + i);
+			antiBackslash.union(0, virtualSize + 2 + i);
 		}
-		else
-			UF.union(size * size + 1, number);
-		if ((side = top(number)) > 0)
-		{			
-			if (isOpen(i - 1, j))
-			{
-				UF.union(side, number);
-				safeUF.union(side, number);
-			}
-		}
-		else 
+		for(int i = last - virtualSize - 2; i > last - 2 * virtualSize; i--)
 		{
-			UF.union(0, number);
-			safeUF.union(0, number);
+			indicator.union(last, i);
 		}
 	}
 
-	public boolean isOpen(int i, int j) {
-		if (i > size || i < 1 || j > size || j < 1)
-			throw new IndexOutOfBoundsException("wrong index");
-		return opened[size * (i - 1) + j];
+	public void open(int i, int j)
+	{
+		checkIndex(i, j);
+		if(isOpenWE(i - 1, j)) {
+			indicator.union(getIndex(i - 1, j), getIndex(i, j));
+			antiBackslash.union(getIndex(i - 1, j), getIndex(i, j));
+		}
+		if(isOpenWE(i + 1, j))
+		{
+			indicator.union(getIndex(i + 1, j), getIndex(i, j));
+			antiBackslash.union(getIndex(i + 1, j), getIndex(i, j));
+		}
+		if(isOpenWE(i, j - 1))
+		{
+			indicator.union(getIndex(i, j - 1), getIndex(i, j));
+			antiBackslash.union(getIndex(i, j - 1), getIndex(i, j));
+		}
+		if(isOpenWE(i, j + 1))
+		{
+			indicator.union(getIndex(i, j + 1), getIndex(i, j));
+			antiBackslash.union(getIndex(i, j + 1), getIndex(i, j));
+		}
+		if (i == 1)
+			opened[0] = true;
+		if (i == size)
+			opened[virtualSize * virtualSize + 1] = true;
+		opened[getIndex(i, j)] = true;
 	}
 
-	public boolean isFull(int i, int j) {
-		if (i > size || i < 1 || j > size || j < 1)
-			throw new IndexOutOfBoundsException("wrong index");
-		return safeUF.connected(numberOf(i, j), 0) && isOpen(i, j);
-				
+	public boolean isOpen(int i, int j)
+	{
+		checkIndex(i, j);
+		return opened[getIndex(i, j)];
 	}
 
-	public boolean percolates() {
-		return UF.connected(0, size * size + 1);
+	public boolean isFull(int i, int j)
+	{
+		checkIndex(i, j);
+		return antiBackslash.connected(getIndex(i, j), 0) && isOpen(i, j);
 	}
 
-	private int numberOf(int i, int j) {
-		return size * (i - 1) + j;
+	public boolean percolates()
+	{
+		return indicator.connected(0, virtualSize * virtualSize + 1) && opened[0] &&
+				opened[virtualSize * virtualSize + 1];
 	}
 
-	private int left(int element) {
-		if (element % size == 1)
-			return -1;
-		else
-			return element - 1;
+	public static void main(String[] args)
+	{
+
 	}
 
-	private int right(int element) {
-		if (element % size == 0)
-			return -1;
-		else
-			return element + 1;
+	// handles corner cases without an exception
+	private boolean isOpenWE(int i, int j)
+	{
+		return opened[getIndex(i, j)];
 	}
 
-	private int top(int element) {
-		if (element < size + 1)
-			return -1;
-		else
-			return element - size;
+	private void checkIndex(int i, int j)
+	{
+		if (!(0 < i && i <= size) || !(0 < j && j <= size))
+			throw new IndexOutOfBoundsException();
 	}
 
-	private int bottom(int element) {
-		if (element - size * (size - 1) > 0)
-			return -1;
-		else
-			return element + size;
+	// indexes from 1 to size
+	private int getIndex(int i, int j)
+	{
+		if (!(0 <= i && i <= size + 1) || !(0 <= j && j <= size + 1))
+			throw new IndexOutOfBoundsException("getIndex");
+		return 1 + virtualSize * i + j;
 	}
 
-	private WeightedQuickUnionUF UF;
-	private WeightedQuickUnionUF safeUF;
+	// indicates whether system percolates. Connected to both top and bottom
+	private WeightedQuickUnionUF indicator;
+	// indicates whether site is connected to the top
+	private WeightedQuickUnionUF antiBackslash;
 	private boolean[] opened;
+	// size of a matrix in memory. Has a 1-element frame around
+	private int virtualSize;
+	// real problem size
 	private int size;
 }

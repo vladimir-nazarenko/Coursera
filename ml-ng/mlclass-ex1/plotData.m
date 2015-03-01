@@ -15,9 +15,7 @@ function plotData(x, y)
 %       markers larger by using plot(..., 'rx', 'MarkerSize', 10);
 
 figure; % open a new figure window
-plot(x, y, 'rx', 'MarkerSize', 10);
-xlabel('Population of the city in 10000s');
-ylabel('Profit on $10000s');
+
 
 
 
